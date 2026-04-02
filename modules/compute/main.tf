@@ -150,7 +150,7 @@ resource "azurerm_lb_rule" "ssh_rule" {
   probe_id                       = azurerm_lb_probe.probe.id
 }
 
-#Extension
+
 
 resource "azurerm_virtual_machine_scale_set_extension" "custom_script" {
   name                         = "customScript"
@@ -165,5 +165,4 @@ resource "azurerm_virtual_machine_scale_set_extension" "custom_script" {
     ]
     commandToExecute = "bash install.sh"
   })
-}
 }
