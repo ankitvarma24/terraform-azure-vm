@@ -4,14 +4,13 @@ resource "azurerm_linux_virtual_machine_scale_set" "vmss" {
   location            = var.location
   sku                 = "Standard_B2s"
 
-  instances = 2   # ✅ 2 VMs minimum
+  instances = 2
 
   admin_username = "azureuser"
   admin_password = var.password
 
   disable_password_authentication = false
 
-  # SUSE IMAGE
   source_image_reference {
     publisher = "SUSE"
     offer     = "sles-15-sp5"
@@ -19,7 +18,6 @@ resource "azurerm_linux_virtual_machine_scale_set" "vmss" {
     version   = "latest"
   }
 
-  # INSTALL SCRIPT
   custom_data = base64encode(file("${path.module}/../../scripts/install.sh"))
 
   network_interface {
@@ -39,7 +37,9 @@ resource "azurerm_linux_virtual_machine_scale_set" "vmss" {
   }
 }
 
-# AUTO SCALING
+# ==========================
+# AUTO SCALE (FIXED VERSION)
+# ==========================
 resource "azurerm_monitor_autoscale_setting" "autoscale" {
   name                = "autoscale-vmss"
   resource_group_name = var.rg_name
@@ -55,37 +55,45 @@ resource "azurerm_monitor_autoscale_setting" "autoscale" {
       default = 2
     }
 
-    # Scale Out
+    # SCALE OUT
     rule {
       metric_trigger {
         metric_name        = "Percentage CPU"
-        metric_namespace   = "Microsoft.Compute/virtualMachineScaleSets"
+        metric_resource_id = azurerm_linux_virtual_machine_scale_set.vmss.id
+        time_grain         = "PT1M"
+        statistic          = "Average"
+        time_window        = "PT5M"
+        time_aggregation   = "Average"
         operator           = "GreaterThan"
         threshold          = 70
-        aggregation        = "Average"
       }
 
       scale_action {
         direction = "Increase"
         type      = "ChangeCount"
         value     = "1"
+        cooldown  = "PT5M"
       }
     }
 
-    # Scale In
+    # SCALE IN
     rule {
       metric_trigger {
         metric_name        = "Percentage CPU"
-        metric_namespace   = "Microsoft.Compute/virtualMachineScaleSets"
+        metric_resource_id = azurerm_linux_virtual_machine_scale_set.vmss.id
+        time_grain         = "PT1M"
+        statistic          = "Average"
+        time_window        = "PT5M"
+        time_aggregation   = "Average"
         operator           = "LessThan"
         threshold          = 30
-        aggregation        = "Average"
       }
 
       scale_action {
         direction = "Decrease"
         type      = "ChangeCount"
         value     = "1"
+        cooldown  = "PT5M"
       }
     }
   }

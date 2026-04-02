@@ -1,9 +1,7 @@
 variable "rg_name" {
-  description = "Resource Group Name"
-  type        = string
+  type = string
 }
 
 variable "location" {
-  description = "Azure Location"
-  type        = string
+  type = string
 }
