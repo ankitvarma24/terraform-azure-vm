@@ -24,11 +24,13 @@ resource "azurerm_linux_virtual_machine_scale_set" "vmss" {
     name    = "vmss-nic"
     primary = true
 
-    ip_configuration {
-      name      = "internal"
-      subnet_id = var.subnet_id
-      primary   = true
-    }
+   ip_configuration {
+  name                                   = "internal"
+  subnet_id                              = var.subnet_id
+  primary                                = true
+  load_balancer_backend_address_pool_ids = [azurerm_lb_backend_address_pool.bepool.id]
+}
+
   }
 
   os_disk {
@@ -38,7 +40,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "vmss" {
 }
 
 # ==========================
-# AUTO SCALE (FIXED VERSION)
+# AUTO SCALE 
 # ==========================
 resource "azurerm_monitor_autoscale_setting" "autoscale" {
   name                = "autoscale-vmss"
@@ -97,4 +99,53 @@ resource "azurerm_monitor_autoscale_setting" "autoscale" {
       }
     }
   }
+}
+
+
+# PUBLIC IP
+resource "azurerm_public_ip" "lb_ip" {
+  name                = "av-devops-lb-ip"
+  location            = var.location
+  resource_group_name = var.rg_name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+}
+
+# LOAD BALANCER
+resource "azurerm_lb" "lb" {
+  name                = "av-devops-lb"
+  location            = var.location
+  resource_group_name = var.rg_name
+  sku                 = "Standard"
+
+  frontend_ip_configuration {
+    name                 = "public-ip"
+    public_ip_address_id = azurerm_public_ip.lb_ip.id
+  }
+}
+
+# BACKEND POOL
+resource "azurerm_lb_backend_address_pool" "bepool" {
+  loadbalancer_id = azurerm_lb.lb.id
+  name            = "backend-pool"
+}
+
+# HEALTH PROBE
+resource "azurerm_lb_probe" "probe" {
+  loadbalancer_id = azurerm_lb.lb.id
+  name            = "ssh-probe"
+  port            = 22
+  protocol        = "Tcp"
+}
+
+# LB RULE
+resource "azurerm_lb_rule" "ssh_rule" {
+  loadbalancer_id                = azurerm_lb.lb.id
+  name                           = "ssh-rule"
+  protocol                       = "Tcp"
+  frontend_port                  = 22
+  backend_port                   = 22
+  frontend_ip_configuration_name = "public-ip"
+  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.bepool.id]
+  probe_id                       = azurerm_lb_probe.probe.id
 }
