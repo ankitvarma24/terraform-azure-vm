@@ -152,14 +152,18 @@ resource "azurerm_lb_rule" "ssh_rule" {
 
 #Extension
 
-extension {
-  name                 = "customScript"
-  publisher            = "Microsoft.Azure.Extensions"
-  type                 = "CustomScript"
-  type_handler_version = "2.1"
+resource "azurerm_virtual_machine_scale_set_extension" "custom_script" {
+  name                         = "customScript"
+  virtual_machine_scale_set_id = azurerm_linux_virtual_machine_scale_set.vmss.id
+  publisher                    = "Microsoft.Azure.Extensions"
+  type                         = "CustomScript"
+  type_handler_version         = "2.1"
 
   settings = jsonencode({
-    fileUris = ["https://raw.githubusercontent.com/ankitvarma24/terraform-azure-vm/main/scripts/install.sh"],
+    fileUris = [
+      "https://raw.githubusercontent.com/ankitvarma24/terraform-azure-vm/main/scripts/install.sh"
+    ]
     commandToExecute = "bash install.sh"
   })
+}
 }
