@@ -149,3 +149,17 @@ resource "azurerm_lb_rule" "ssh_rule" {
   backend_address_pool_ids       = [azurerm_lb_backend_address_pool.bepool.id]
   probe_id                       = azurerm_lb_probe.probe.id
 }
+
+#Extension
+
+extension {
+  name                 = "customScript"
+  publisher            = "Microsoft.Azure.Extensions"
+  type                 = "CustomScript"
+  type_handler_version = "2.1"
+
+  settings = jsonencode({
+    fileUris = ["https://raw.githubusercontent.com/ankitvarma24/terraform-azure-vm/main/scripts/install.sh"],
+    commandToExecute = "bash install.sh"
+  })
+}
